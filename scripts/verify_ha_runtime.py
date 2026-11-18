@@ -83,7 +83,7 @@ def wait_for_home_assistant() -> None:
                 if response.status == 200:
                     print("Home Assistant API is ready.")
                     return
-        except (urllib.error.URLError, TimeoutError):
+        except (OSError, urllib.error.URLError, TimeoutError):
             time.sleep(2)
     fail("Home Assistant did not become ready within five minutes")
 
