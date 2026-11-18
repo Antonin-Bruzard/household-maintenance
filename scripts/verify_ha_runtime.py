@@ -194,23 +194,34 @@ def wait_for_integration(ws: HomeAssistantWebSocket) -> None:
     fail("Integration did not load after its config flow completed")
 
 
-def configure_integration(ws: HomeAssistantWebSocket) -> None:
+def configure_integration(token: str, ws: HomeAssistantWebSocket) -> None:
     deadline = time.monotonic() + 90
     while time.monotonic() < deadline:
-        result = ws.call(
-            {"type": "config_entries/flow", "handler": "household_maintenance", "show_advanced_options": False},
-            allow_error=True,
-        )
-        error = result.get("_error")
-        if isinstance(error, dict) and error.get("code") == "unknown_command":
-            # default_config is still loading its config-entry WebSocket API.
+        try:
+            result = request_json(
+                "/api/config/config_entries/flow",
+                {"handler": "household_maintenance", "show_advanced_options": False},
+                token,
+            )
+        except AssertionError as exc:
+            if "HTTP 404" in str(exc):
+                # The local config API is still loading from default_config.
+                time.sleep(1)
+                continue
+            raise
+        if result.get("type") == "create_entry":
+            wait_for_integration(ws)
+            return
+        if result.get("type") == "form":
+            fail(f"Unexpected interactive form in local config flow: {result}")
+        if result.get("reason") == "already_configured":
+            wait_for_integration(ws)
+            return
+        if not result:
             time.sleep(1)
             continue
-        if result.get("type") != "create_entry":
-            fail(f"Config flow did not create the local entry: {result}")
-        wait_for_integration(ws)
-        return
-    fail("Home Assistant did not register the config-entry WebSocket API")
+        fail(f"Config flow did not create the local entry: {result}")
+    fail("Home Assistant did not register the local config-entry API")
 
 
 def assert_static_assets(token: str) -> None:
@@ -227,7 +238,7 @@ def exercise_crud_and_persistence(token: str) -> None:
     ws = HomeAssistantWebSocket(token)
     try:
         ws.call({"type": "subscribe_events", "event_type": "household_maintenance_updated"})
-        configure_integration(ws)
+        configure_integration(token, ws)
         assert_static_assets(token)
 
         invalid_id = ws._next_id
