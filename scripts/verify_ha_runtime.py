@@ -138,7 +138,7 @@ class HomeAssistantWebSocket:
     def _recv(self) -> dict[str, Any]:
         return json.loads(self._socket.recv())
 
-    def call(self, command: dict[str, Any]) -> dict[str, Any]:
+    def call(self, command: dict[str, Any], allow_error: bool = False) -> dict[str, Any]:
         request_id = self._next_id
         self._next_id += 1
         self._send({"id": request_id, **command})
@@ -150,6 +150,8 @@ class HomeAssistantWebSocket:
             if message.get("id") != request_id:
                 continue
             if not message.get("success"):
+                if allow_error:
+                    return {"_error": message.get("error", {})}
                 fail(f"WebSocket command {command['type']} failed: {message}")
             return message.get("result", {})
 
@@ -193,10 +195,22 @@ def wait_for_integration(ws: HomeAssistantWebSocket) -> None:
 
 
 def configure_integration(ws: HomeAssistantWebSocket) -> None:
-    result = ws.call({"type": "config_entries/flow", "handler": "household_maintenance", "show_advanced_options": False})
-    if result.get("type") != "create_entry":
-        fail(f"Config flow did not create the local entry: {result}")
-    wait_for_integration(ws)
+    deadline = time.monotonic() + 90
+    while time.monotonic() < deadline:
+        result = ws.call(
+            {"type": "config_entries/flow", "handler": "household_maintenance", "show_advanced_options": False},
+            allow_error=True,
+        )
+        error = result.get("_error")
+        if isinstance(error, dict) and error.get("code") == "unknown_command":
+            # default_config is still loading its config-entry WebSocket API.
+            time.sleep(1)
+            continue
+        if result.get("type") != "create_entry":
+            fail(f"Config flow did not create the local entry: {result}")
+        wait_for_integration(ws)
+        return
+    fail("Home Assistant did not register the config-entry WebSocket API")
 
 
 def assert_static_assets(token: str) -> None:
