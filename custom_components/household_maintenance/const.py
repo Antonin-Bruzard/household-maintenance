@@ -1,6 +1,10 @@
 DOMAIN = "household_maintenance"
-PANEL_URL = "/household_maintenance/panel.html"
+STORAGE_KEY = f"{DOMAIN}.tasks"
+STORAGE_VERSION = 1
+DATA_STORE = "store"
+PANEL_URL = "/household_maintenance/panel.js"
+CARD_URL = "/household_maintenance/household-maintenance-card.js"
 PANEL_COMPONENT = "household-maintenance-panel"
 PANEL_TITLE = "Maintenance"
 PANEL_ICON = "mdi:toolbox-outline"
-STORAGE_VERSION = 1
+EVENT_UPDATED = f"{DOMAIN}_updated"

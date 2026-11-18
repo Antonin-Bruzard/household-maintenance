@@ -1,10 +1,16 @@
-// HA scaffold asset: registers the panel shell. The local functional panel is
-// prototype/frontend/household-maintenance-panel.js and uses the same API contract.
 class HouseholdMaintenancePanel extends HTMLElement {
-  set hass(value) { this._hass = value; this.render(); }
-  connectedCallback() { this.render(); }
-  render() {
-    this.innerHTML = `<ha-card header="Maintenance domestique"><div class="card-content">Prototype local : la gestion complète est démontrée par le panel local. Ce scaffold attend le futur adaptateur WebSocket Home Assistant.</div></ha-card>`;
+  set hass(value) { this._hass = value; this._subscribe(); this._refresh(); }
+  connectedCallback() { this._refresh(); }
+  disconnectedCallback() { if (this._unsubscribe) this._unsubscribe(); }
+  _subscribe() { if (!this._hass || this._unsubscribe) return; this._hass.connection.subscribeEvents(() => this._refresh(), "household_maintenance_updated").then((unsub) => { this._unsubscribe = unsub; }); }
+  async _refresh() { if (!this._hass) return; try { this._tasks = (await this._hass.callWS({type:"household_maintenance/list",status:this._status||"all",sort:this._sort||"priority"})).tasks; this._render(); } catch (err) { this._error = "Maintenance indisponible."; this._render(); } }
+  _field(type, value="") { const node=document.createElement("input"); node.type=type; node.value=value; return node; }
+  _render() {
+    const card=document.createElement("ha-card"); card.header="Maintenance domestique"; const body=document.createElement("div"); body.className="card-content";
+    const controls=document.createElement("div"); const status=document.createElement("select"); ["all","overdue","due_today","upcoming","scheduled"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;o.selected=v===(this._status||"all");status.append(o)}); status.onchange=()=>{this._status=status.value;this._refresh()};
+    const sort=document.createElement("select"); ["priority","due"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;o.selected=v===(this._sort||"priority");sort.append(o)}); sort.onchange=()=>{this._sort=sort.value;this._refresh()}; controls.append("Filtre ",status," Tri ",sort); body.append(controls);
+    const form=document.createElement("form"); const title=this._field("text"); title.placeholder="Nouvelle tâche"; title.required=true; const due=this._field("datetime-local"); due.required=true; const priority=document.createElement("select"); ["critical","high","normal","low"].forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;priority.append(o)}); const submit=document.createElement("button"); submit.textContent="Ajouter"; form.append(title,due,priority,submit); form.onsubmit=async(e)=>{e.preventDefault();try{await this._hass.callWS({type:"household_maintenance/create",title:title.value,due_at:new Date(due.value).toISOString(),priority:priority.value});form.reset();this._refresh()}catch(err){this._error="Création refusée : droits administrateur requis ou données invalides.";this._render()}}; body.append(form);
+    if(this._error){const error=document.createElement("p");error.textContent=this._error;body.append(error)} const list=document.createElement("ul"); for(const task of this._tasks||[]){const row=document.createElement("li"); const label=document.createElement("span"); label.textContent=`[${task.priority}] ${task.title} — ${task.status} — ${new Date(task.due_at).toLocaleString()}`; const done=document.createElement("button");done.type="button";done.textContent="Terminer";done.onclick=async()=>{await this._hass.callWS({type:"household_maintenance/complete",task_id:task.id});this._refresh()}; const remove=document.createElement("button");remove.type="button";remove.textContent="Supprimer";remove.onclick=async()=>{await this._hass.callWS({type:"household_maintenance/delete",task_id:task.id});this._refresh()};row.append(label," ",done," ",remove);list.append(row)} body.append(list); card.append(body);this.replaceChildren(card);
   }
 }
 customElements.define("household-maintenance-panel", HouseholdMaintenancePanel);

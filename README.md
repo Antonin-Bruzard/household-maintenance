@@ -1,37 +1,62 @@
-# Prototype local — `household_maintenance`
+# Household Maintenance
 
-Prototype **local, isolé et réversible** d’une intégration de maintenance domestique. Aucun fichier de ce workspace n’est installé dans Home Assistant, aucun import de `home_maintenance` n’est effectué, et aucune donnée réelle ou secret n’est utilisé.
+[![HACS validation](https://github.com/Antonin-Bruzard/household-maintenance/actions/workflows/validate.yml/badge.svg)](https://github.com/Antonin-Bruzard/household-maintenance/actions/workflows/validate.yml)
 
-## Deux surfaces, deux rôles
+Local-first Home Assistant custom integration for recurring household-maintenance tasks. It stores only task metadata in Home Assistant's local `.storage`, exposes domain WebSocket commands, and provides a management panel plus a Lovelace summary card. No cloud service, analytics, equipment control, credential, or token is used.
 
-- **Panel** (`/panel.html`) : seule interface complète. Il crée, filtre, trie, modifie le titre et réalise les tâches.
-- **Carte Lovelace** (`/household-maintenance-card.js`) : affiche seulement les tâches prioritaires, les compteurs d’échéance et un bouton vers le panel. Elle ne contient aucune mutation (`POST`/`PATCH`).
+![Household Maintenance logo](assets/logo.svg)
 
-Les deux appellent le même contrat local : `GET/POST /api/household_maintenance/tasks`, `PATCH /api/household_maintenance/tasks/<id>` et `POST /api/household_maintenance/tasks/<id>/complete`.
+## Install with HACS
 
-## Exécuter localement
+1. In **HACS → Integrations → ⋮ → Custom repositories**, add `Antonin-Bruzard/household-maintenance` with category **Integration**.
+2. Install **Household Maintenance** and restart Home Assistant.
+3. Go to **Settings → Devices & services → Add integration**, search for **Household Maintenance**, and complete the single local setup flow.
+4. The **Maintenance** sidebar panel appears for Home Assistant administrators.
+
+A GitHub Release is not required for a HACS custom repository. This integration is not submitted to the default HACS catalog.
+
+## Lovelace card
+
+Add the served JavaScript resource once in **Settings → Dashboards → Resources**:
+
+```yaml
+url: /household_maintenance/household-maintenance-card.js
+type: module
+```
+
+Then use:
+
+```yaml
+type: custom:household-maintenance-card
+limit: 3
+```
+
+The card is intentionally a priority summary: it shows overdue, due-today, critical, or high-priority tasks and navigates to the panel. Creation, changes, completion, and deletion remain in the administrator-only panel.
+
+## WebSocket API
+
+All commands use the authenticated Home Assistant WebSocket connection; mutations require an administrator.
+
+- `household_maintenance/list` — optional `status` (`all`, `overdue`, `due_today`, `upcoming`, `scheduled`) and `sort` (`priority`, `due`)
+- `household_maintenance/create` — `title`, timezone-aware ISO `due_at`, optional `description`, `priority`, `recurrence_days`, `advance_notice_days`
+- `household_maintenance/update` — `task_id`, `changes`
+- `household_maintenance/complete` — `task_id`, advances the due date by `recurrence_days`
+- `household_maintenance/delete` — `task_id`
+
+Each successful mutation emits `household_maintenance_updated`, which refreshes the panel and card.
+
+## Development and verification
+
+The repository keeps the initial isolated prototype under `prototype/`; the Home Assistant runtime does **not** use its JSON file or HTTP demo API. Runtime data is owned by `homeassistant.helpers.storage.Store` under the integration storage key.
 
 ```bash
 bash verify.sh
-python3 demo.py --data .demo-data/maintenance.json --port 8765
 ```
 
-Ouvrir `http://127.0.0.1:8765/panel.html`. La persistance est JSON versionnée (`version: 1`) dans le chemin `--data`; la supprimer annule entièrement la démonstration. Utiliser le chemin par défaut maintient toutes les écritures de démonstration dans ce workspace.
+The workflow validates repository structure, Python/JavaScript syntax and the legacy prototype regression tests. `.github/workflows/validate.yml` also runs Hassfest and HACS validation on GitHub.
 
-## Démonstration vérifiable
+For a disposable Home Assistant development instance, copy the repository's `custom_components/household_maintenance` directory into that instance's `config/custom_components/`, start Home Assistant, add the integration through Settings, create a task in the panel, restart the disposable instance, and confirm the task remains. Do not test against a production Home Assistant instance.
 
-Les tests couvrent :
+## License
 
-1. tâche de démonstration en retard ;
-2. création, filtre, tri, modification et réalisation via HTTP local ;
-3. recalcul de l’échéance et conservation de l’historique après rechargement ;
-4. contrat de la carte : accès panel présent, absence de mutations ;
-5. syntaxe Python et JavaScript vérifiable sans dépendance externe.
-
-## Scaffold Home Assistant
-
-`custom_components/household_maintenance/` contient le domaine provisoire, manifest versionné, config flow minimal et enregistrement de panel. Il est fourni comme scaffold à connecter ultérieurement dans **une sandbox Home Assistant seulement**. Il n’est ni déployé, ni déclaré prêt à être copié dans l’instance de production : l’adaptateur WebSocket/Store Home Assistant et ses tests HA restent le prochain lot.
-
-## Retour arrière
-
-Supprimer ce workspace ou `.demo-data/maintenance.json`. Il n’existe aucun effet hors de ce répertoire.
+MIT. See [LICENSE](LICENSE).
