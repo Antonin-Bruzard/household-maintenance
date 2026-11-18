@@ -17,7 +17,8 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 _LIST_SCHEMA = {vol.Required("type"): f"{DOMAIN}/list", vol.Optional("status", default="all"): vol.In(["all", "overdue", "due_today", "upcoming", "scheduled"]), vol.Optional("sort", default="priority"): vol.In(["priority", "due"])}
 _CREATE_SCHEMA = {vol.Required("type"): f"{DOMAIN}/create", vol.Required("title"): str, vol.Required("due_at"): str, vol.Optional("description"): vol.Any(str, None), vol.Optional("priority", default="normal"): vol.In(["critical", "high", "normal", "low"]), vol.Optional("recurrence_days", default=30): int, vol.Optional("advance_notice_days", default=7): int}
 _UPDATE_SCHEMA = {vol.Required("type"): f"{DOMAIN}/update", vol.Required("task_id"): str, vol.Required("changes"): dict}
-_TASK_SCHEMA = {vol.Required("type"): vol.In([f"{DOMAIN}/complete", f"{DOMAIN}/delete"]), vol.Required("task_id"): str}
+_COMPLETE_SCHEMA = {vol.Required("type"): f"{DOMAIN}/complete", vol.Required("task_id"): str}
+_DELETE_SCHEMA = {vol.Required("type"): f"{DOMAIN}/delete", vol.Required("task_id"): str}
 
 
 def _store(hass: HomeAssistant) -> MaintenanceStore:
@@ -89,10 +90,16 @@ async def websocket_update(hass: HomeAssistant, connection: websocket_api.Active
     await _mutate(hass, connection, msg, "update")
 
 
-@websocket_api.websocket_command(_TASK_SCHEMA)
+@websocket_api.websocket_command(_COMPLETE_SCHEMA)
 @websocket_api.async_response
-async def websocket_task(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict) -> None:
-    await _mutate(hass, connection, msg, msg["type"].rsplit("/", 1)[1])
+async def websocket_complete(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict) -> None:
+    await _mutate(hass, connection, msg, "complete")
+
+
+@websocket_api.websocket_command(_DELETE_SCHEMA)
+@websocket_api.async_response
+async def websocket_delete(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict) -> None:
+    await _mutate(hass, connection, msg, "delete")
 
 
 async def _async_setup_runtime(hass: HomeAssistant) -> None:
@@ -110,7 +117,8 @@ async def _async_setup_runtime(hass: HomeAssistant) -> None:
     websocket_api.async_register_command(hass, websocket_list)
     websocket_api.async_register_command(hass, websocket_create)
     websocket_api.async_register_command(hass, websocket_update)
-    websocket_api.async_register_command(hass, websocket_task)
+    websocket_api.async_register_command(hass, websocket_complete)
+    websocket_api.async_register_command(hass, websocket_delete)
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
