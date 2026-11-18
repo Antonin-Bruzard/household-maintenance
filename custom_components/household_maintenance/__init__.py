@@ -103,7 +103,7 @@ async def _async_setup_runtime(hass: HomeAssistant) -> None:
         frontend.StaticPathConfig(PANEL_URL, str(root / "panel.js"), cache_headers=False),
         frontend.StaticPathConfig(CARD_URL, str(root / "household-maintenance-card.js"), cache_headers=False),
     ])
-    panel_custom.async_register_panel(hass, webcomponent_name=PANEL_COMPONENT, frontend_url=PANEL_URL, sidebar_title=PANEL_TITLE, sidebar_icon=PANEL_ICON, require_admin=True, config={"domain": DOMAIN})
+    await panel_custom.async_register_panel(hass, frontend_url_path="household-maintenance", webcomponent_name=PANEL_COMPONENT, module_url=PANEL_URL, sidebar_title=PANEL_TITLE, sidebar_icon=PANEL_ICON, require_admin=True, config={"domain": DOMAIN})
     store = MaintenanceStore(hass)
     await store.async_load()
     hass.data[DOMAIN] = {DATA_STORE: store}
