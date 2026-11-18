@@ -7,9 +7,12 @@ import voluptuous as vol
 from homeassistant.components import frontend, panel_custom, websocket_api
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 
 from .const import CARD_URL, DATA_STORE, DOMAIN, EVENT_UPDATED, PANEL_COMPONENT, PANEL_ICON, PANEL_TITLE, PANEL_URL
 from .store import MaintenanceStore
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _LIST_SCHEMA = vol.Schema({vol.Required("type"): f"{DOMAIN}/list", vol.Optional("status", default="all"): vol.In(["all", "overdue", "due_today", "upcoming", "scheduled"]), vol.Optional("sort", default="priority"): vol.In(["priority", "due"])})
 _CREATE_SCHEMA = vol.Schema({vol.Required("type"): f"{DOMAIN}/create", vol.Required("title"): str, vol.Required("due_at"): str, vol.Optional("description"): vol.Any(str, None), vol.Optional("priority", default="normal"): vol.In(["critical", "high", "normal", "low"]), vol.Optional("recurrence_days", default=30): int, vol.Optional("advance_notice_days", default=7): int})
@@ -109,9 +112,7 @@ async def _async_setup_runtime(hass: HomeAssistant) -> None:
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Support explicit YAML setup for development only."""
-    if DOMAIN in config:
-        await _async_setup_runtime(hass)
+    """Declare configuration validation for the config-entry integration."""
     return True
 
 
