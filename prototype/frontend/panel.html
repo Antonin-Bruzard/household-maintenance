@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maintenance domestique — panel</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #111827; color: #e5e7eb; }
+    main { max-width: 900px; margin: 2rem auto; padding: 0 1rem; } header, .toolbar, form, li { display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; }
+    h1 { margin-right:auto; } button, input, select { padding:.55rem .7rem; border-radius:.4rem; border:1px solid #4b5563; background:#1f2937; color:inherit; }
+    button { cursor:pointer; background:#0f766e; border:0; } button.secondary { background:#374151; } ul { padding:0; list-style:none; } li { background:#1f2937; padding:.8rem; margin:.5rem 0; border-left:4px solid #f59e0b; } li.overdue { border-color:#ef4444; } li.scheduled { border-color:#22c55e; } .meta { color:#9ca3af; font-size:.9rem; margin-right:auto; } #notice { min-height:1.3rem; color:#86efac; }
+  </style>
+</head>
+<body>
+<main id="household-maintenance-panel">
+  <header><h1>Maintenance domestique</h1><span id="summary"></span></header>
+  <p>Le panel est l’interface de gestion : création, modification, filtre, tri et réalisation.</p>
+  <section class="toolbar"><label>Filtre <select id="status"><option value="all">Toutes</option><option value="overdue">En retard</option><option value="due_today">Aujourd’hui</option><option value="upcoming">À venir</option><option value="scheduled">Planifiées</option></select></label><label>Tri <select id="sort"><option value="priority">Priorité</option><option value="due">Échéance</option></select></label><button id="refresh" class="secondary">Actualiser</button></section>
+  <ul id="tasks" aria-live="polite"></ul>
+  <h2>Créer une tâche</h2>
+  <form id="create"><input name="title" required placeholder="Titre"><input name="due_at" required type="datetime-local"><select name="criticality"><option value="normal">Normale</option><option value="high">Haute</option><option value="critical">Critique</option><option value="low">Basse</option></select><input name="recurrence_days" type="number" min="1" value="30"><button>Créer</button></form>
+  <div id="notice"></div>
+</main>
+<script type="module" src="/household-maintenance-panel.js"></script>
+</body>
+</html>
