@@ -27,3 +27,30 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+  home-assistant-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Prepare an isolated Home Assistant config directory
+        run: |
+          mkdir -p .ha-config/custom_components
+          cp -R custom_components/household_maintenance .ha-config/custom_components/
+      - name: Start disposable Home Assistant Core
+        run: |
+          docker run -d --name household-maintenance-ci -p 8123:8123 \
+            -v "$PWD/.ha-config:/config" \
+            ghcr.io/home-assistant/home-assistant:2024.7.4
+      - name: Exercise authenticated WebSocket CRUD and Store persistence
+        run: |
+          python -m pip install --disable-pip-version-check websocket-client
+          python scripts/verify_ha_runtime.py
+        env:
+          HA_CONFIG: ${{ github.workspace }}/.ha-config
+          HA_CONTAINER: household-maintenance-ci
+      - name: Show Home Assistant logs on failure
+        if: failure()
+        run: docker logs household-maintenance-ci

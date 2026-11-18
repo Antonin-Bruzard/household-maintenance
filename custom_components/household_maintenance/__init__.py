@@ -47,7 +47,9 @@ def _send_exception(connection: websocket_api.ActiveConnection, msg: dict, exc: 
 @websocket_api.async_response
 async def websocket_list(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict) -> None:
     """Return the safe task projection for panels and Lovelace cards."""
-    if not _runtime_is_available(hass, connection, msg) or not _require_admin(connection, msg):
+    # Cards are often shown to non-admin household members. Reads use the
+    # authenticated Home Assistant WebSocket; only state changes need admin.
+    if not _runtime_is_available(hass, connection, msg):
         return
     try:
         connection.send_result(msg["id"], {"tasks": await _store(hass).async_list(msg["status"], msg["sort"]), "panel_path": "household-maintenance"})

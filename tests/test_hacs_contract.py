@@ -37,9 +37,18 @@ class HacsContractTest(unittest.TestCase):
         self.assertIn("async_register_panel", init)
         self.assertIn("async_register_static_paths", init)
         self.assertIn("callWS", panel)
+        self.assertIn("household_maintenance/update", panel)
         self.assertIn("subscribeEvents", panel)
         self.assertIn("callWS", card)
         self.assertIn("customCards", card)
+
+    def test_reads_are_authenticated_but_admin_is_reserved_for_mutations(self) -> None:
+        init = (COMPONENT / "__init__.py").read_text(encoding="utf-8")
+        list_handler = init.split("async def websocket_list", 1)[1].split("async def _mutate", 1)[0]
+        mutate_handler = init.split("async def _mutate", 1)[1].split("@websocket_api.websocket_command(_CREATE_SCHEMA)", 1)[0]
+
+        self.assertNotIn("_require_admin(connection, msg)", list_handler)
+        self.assertIn("_require_admin(connection, msg)", mutate_handler)
 
 
 if __name__ == "__main__":
