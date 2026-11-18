@@ -187,10 +187,11 @@ def wait_for_integration(ws: HomeAssistantWebSocket) -> None:
             if message.get("success"):
                 print("Integration loaded and WebSocket commands are available.")
                 return
-            if message.get("error", {}).get("code") != "not_loaded":
-                fail(f"Integration failed while setting up: {message}")
-            time.sleep(1)
-            break
+            error_code = message.get("error", {}).get("code")
+            if error_code in {"not_loaded", "unknown_command"}:
+                time.sleep(1)
+                break
+            fail(f"Integration failed while setting up: {message}")
     fail("Integration did not load after its config flow completed")
 
 
