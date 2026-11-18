@@ -38,6 +38,7 @@ jobs:
       - name: Prepare an isolated Home Assistant config directory
         run: |
           mkdir -p .ha-config/custom_components
+          printf 'default_config:\n' > .ha-config/configuration.yaml
           cp -R custom_components/household_maintenance .ha-config/custom_components/
       - name: Start disposable Home Assistant Core
         run: |
