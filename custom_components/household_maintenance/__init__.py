@@ -14,10 +14,10 @@ from .store import MaintenanceStore
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
-_LIST_SCHEMA = vol.Schema({vol.Required("type"): f"{DOMAIN}/list", vol.Optional("status", default="all"): vol.In(["all", "overdue", "due_today", "upcoming", "scheduled"]), vol.Optional("sort", default="priority"): vol.In(["priority", "due"])})
-_CREATE_SCHEMA = vol.Schema({vol.Required("type"): f"{DOMAIN}/create", vol.Required("title"): str, vol.Required("due_at"): str, vol.Optional("description"): vol.Any(str, None), vol.Optional("priority", default="normal"): vol.In(["critical", "high", "normal", "low"]), vol.Optional("recurrence_days", default=30): int, vol.Optional("advance_notice_days", default=7): int})
-_UPDATE_SCHEMA = vol.Schema({vol.Required("type"): f"{DOMAIN}/update", vol.Required("task_id"): str, vol.Required("changes"): dict})
-_TASK_SCHEMA = vol.Schema({vol.Required("type"): vol.In([f"{DOMAIN}/complete", f"{DOMAIN}/delete"]), vol.Required("task_id"): str})
+_LIST_SCHEMA = {vol.Required("type"): f"{DOMAIN}/list", vol.Optional("status", default="all"): vol.In(["all", "overdue", "due_today", "upcoming", "scheduled"]), vol.Optional("sort", default="priority"): vol.In(["priority", "due"])}
+_CREATE_SCHEMA = {vol.Required("type"): f"{DOMAIN}/create", vol.Required("title"): str, vol.Required("due_at"): str, vol.Optional("description"): vol.Any(str, None), vol.Optional("priority", default="normal"): vol.In(["critical", "high", "normal", "low"]), vol.Optional("recurrence_days", default=30): int, vol.Optional("advance_notice_days", default=7): int}
+_UPDATE_SCHEMA = {vol.Required("type"): f"{DOMAIN}/update", vol.Required("task_id"): str, vol.Required("changes"): dict}
+_TASK_SCHEMA = {vol.Required("type"): vol.In([f"{DOMAIN}/complete", f"{DOMAIN}/delete"]), vol.Required("task_id"): str}
 
 
 def _store(hass: HomeAssistant) -> MaintenanceStore:
